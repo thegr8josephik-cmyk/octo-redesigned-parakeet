@@ -1,5 +1,66 @@
+```
+# Dependencies
 node_modules/
-.next/
+
+# Build artifacts
 dist/
 build/
+*.js.map
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
 *.log
+
+# Python (if applicable)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# Testing
+.nyc_output/
+coverage-final.json
+
+# Distribution / packaging
+.Python
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Local development
+.venv/
+venv/
+.envrc
+.env.local
+
+# Compressed files
+*.zip
+*.tar.gz
+*.tar.xz
+*.bz2
+*.gz
+*.7z
+*.rar
+```.next/
