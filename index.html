@@ -1,337 +1,931 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Hunter - Ascension</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Hunter: Ascension</title>
+    <style>
+        :root {
+            --bg: #0f172a; --bg2: #1e293b; --panel: #334155; --panel2: #475569;
+            --line: #64748b; --green: #4ade80; --orange: #fb923c; --red: #f87171;
+            --blue: #60a5fa; --purple: #c084fc; --yellow: #facc15; --cyan: #22d3ee;
+            --text: #f1f5f9; --dim: #94a3b8; --r: 8px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Layout */
+        .app-container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 260px; background: var(--bg2); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 10px; gap: 10px; }
+        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 5px; padding: 10px; background: var(--bg2); border-bottom: 1px solid var(--line); }
+        .tab-btn { flex: 1; padding: 8px; background: transparent; border: 1px solid var(--line); color: var(--dim); border-radius: var(--r); cursor: pointer; transition: 0.2s; font-weight: bold; }
+        .tab-btn:hover { background: var(--panel); color: var(--text); }
+        .tab-btn.active { background: var(--green); color: var(--bg); border-color: var(--green); }
+
+        /* Screens */
+        .screen { display: none; flex: 1; padding: 20px; overflow-y: auto; gap: 20px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+        .screen.active { display: flex; }
+
+        /* Cards & Panels */
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; width: 100%; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .card h2 { color: var(--green); margin-bottom: 10px; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+        .card h3 { color: var(--cyan); font-size: 0.9rem; margin: 10px 0 5px; }
+
+        /* HUD */
+        .top-hud { display: flex; justify-content: space-between; padding: 10px 20px; background: var(--bg2); border-bottom: 1px solid var(--line); gap: 15px; }
+        .stat-pill { display: flex; align-items: center; gap: 8px; background: var(--panel); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; border: 1px solid var(--line); }
+        .bar-container { width: 100px; height: 6px; background: #0f172a; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+        .hp-fill { background: linear-gradient(90deg, #ef4444, var(--red)); }
+        .qi-fill { background: linear-gradient(90deg, #0891b2, var(--cyan)); }
+        .xp-fill { background: linear-gradient(90deg, #ca8a04, var(--yellow)); }
+
+        /* Arena */
+        .arena-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; margin: 0 auto; position: relative; }
+        .battle-scene { width: 100%; height: 250px; position: relative; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 40px; margin-bottom: 20px; }
+        .sprite { width: 100px; height: 100px; transition: transform 0.2s; position: relative; z-index: 2; }
+        .sprite.enemy { transform: scaleX(-1); }
+        .sprite.hit { animation: shake 0.3s; filter: brightness(2); }
+        .sprite.dead { animation: fadeOut 0.5s forwards; }
+        .sprite.attack-anim { animation: lunge 0.3s; }
+        
+        @keyframes shake { 0%, 100% { transform: translateX(0) scaleX(-1); } 25% { transform: translateX(-10px) scaleX(-1); } 75% { transform: translateX(10px) scaleX(-1); } }
+        @keyframes lunge { 50% { transform: translateX(50px); } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(20px) scaleX(-1); } }
+
+        .floating-text { position: absolute; font-weight: bold; font-size: 1.5rem; animation: floatUp 1s forwards; pointer-events: none; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-50px) scale(1.2); } }
+
+        .battle-hud { width: 100%; display: flex; justify-content: space-between; gap: 20px; margin-bottom: 15px; }
+        .unit-stats { flex: 1; background: rgba(15, 23, 42, 0.8); padding: 10px; border-radius: 8px; border: 1px solid var(--line); }
+        .unit-name { font-weight: bold; font-size: 0.9rem; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .enemy-name { color: var(--red); }
+        .hero-name { color: var(--green); }
+
+        .actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+        .btn { padding: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.15s; font-size: 0.8rem; }
+        .btn:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-2px); }
+        .btn:active:not(:disabled) { transform: translateY(0); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-green { border-color: var(--green); color: var(--green); }
+        .btn-red { border-color: var(--red); color: var(--red); }
+        .btn-blue { border-color: var(--blue); color: var(--blue); }
+        .btn-orange { border-color: var(--orange); color: var(--orange); }
+        .btn-big { font-size: 1rem; padding: 12px; grid-column: span 2; }
+
+        /* Lists */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--bg); border-radius: 4px; margin-bottom: 5px; border: 1px solid transparent; }
+        .list-item:hover { border-color: var(--dim); }
+        .list-item.selected { border-color: var(--green); background: rgba(74, 222, 128, 0.1); }
+
+        /* Toast */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
+        .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid var(--cyan); color: var(--text); padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; animation: slideIn 0.3s, fadeOut 0.3s 2.5s forwards; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 50; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: var(--panel); padding: 30px; border-radius: 12px; border: 1px solid var(--line); text-align: center; max-width: 400px; }
+        .modal h1 { font-size: 2rem; margin-bottom: 10px; }
+        .modal p { color: var(--dim); margin-bottom: 20px; }
+
+        /* Skill Tree */
+        .skill-node { padding: 10px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 8px; cursor: pointer; opacity: 0.6; transition: 0.2s; }
+        .skill-node.unlocked { opacity: 1; border-color: var(--green); background: rgba(74, 222, 128, 0.1); }
+        .skill-node.available { opacity: 1; border-color: var(--cyan); cursor: pointer; }
+        .skill-node.available:hover { background: rgba(34, 211, 238, 0.1); }
+        .skill-node.locked { cursor: not-allowed; }
+    </style>
 </head>
 <body>
-  <!-- Background Particles -->
-  <div class="bg-particles" id="particles"></div>
 
-  <!-- Toast Container -->
-  <div id="toasts"></div>
+<div id="toast-container"></div>
 
-  <!-- Tab Navigation -->
-  <div class="tabs">
-    <button class="tab on" id="t-hunt" onclick="show('hunt')">⚔️ HUNT</button>
-    <button class="tab" id="t-guild" onclick="show('guild')">🏰 GUILD</button>
-    <button class="tab" id="t-growth" onclick="show('growth')">🧬 GROWTH</button>
-    <button class="tab" id="t-inventory" onclick="show('inventory')">🎒 INVENTORY</button>
-    <button class="tab" id="t-settings" onclick="show('settings')">⚙️ SETTINGS</button>
-  </div>
+<!-- Top HUD -->
+<div class="top-hud">
+    <div class="stat-pill">💰 <span id="hud-gold">0</span> <small style="color:var(--dim)">(+<span id="hud-gps">0</span>/s)</small></div>
+    <div class="stat-pill">⭐ Lvl <span id="hud-lvl">1</span></div>
+    <div class="bar-container" style="width: 80px"><div class="bar-fill xp-fill" id="hud-xp-bar" style="width: 0%"></div></div>
+    <div class="stat-pill">⚡ <span id="hud-qi">0</span>/<span id="hud-max-qi">0</span></div>
+    <div class="bar-container" style="width: 60px"><div class="bar-fill qi-fill" id="hud-qi-bar" style="width: 0%"></div></div>
+</div>
 
-  <!-- Top HUD -->
-  <div class="hud">
-    <div class="hud-item">
-      <span class="hud-icon">💰</span>
-      <span class="hud-val" id="hudGold">0</span>
-      <span class="hud-sub" id="hudGPS">+0/s</span>
-    </div>
-    <div class="hud-item">
-      <span class="hud-icon">⚡</span>
-      <div class="hud-barwrap">
-        <div class="hud-fill qi" id="hudQiBar"></div>
-      </div>
-      <span class="hud-val" id="hudQi">0/0</span>
-    </div>
-    <div class="hud-item">
-      <span class="hud-icon">⭐</span>
-      <span class="hud-val" id="hudLvl">Lv.1</span>
-      <div class="hud-barwrap">
-        <div class="hud-fill xp" id="hudXpBar"></div>
-      </div>
-    </div>
-    <div class="hud-item">
-      <span class="hud-icon">❤️</span>
-      <div class="hud-barwrap">
-        <div class="hud-fill hp" id="hudHpBar"></div>
-      </div>
-      <span class="hud-val" id="hudHp">0/0</span>
-    </div>
-  </div>
-
-  <!-- HUNT Screen -->
-  <div class="screen on" id="s-hunt">
-    <!-- Zone Selection Card -->
-    <div class="card" style="width:240px;max-height:580px;overflow-y:auto;">
-      <h2>🗺️ ZONES</h2>
-      <div id="zones"></div>
-      
-      <h3>📊 COMBAT STATS</h3>
-      <div class="equip-slot"><span>⚔ ATK</span><span id="hAtk">0</span></div>
-      <div class="equip-slot"><span>🛡 DEF</span><span id="hDef">0</span></div>
-      <div class="equip-slot"><span>🔮 MAG</span><span id="hMag">0</span></div>
-      <div class="equip-slot"><span>✨ CRIT</span><span id="hCrit">0%</span></div>
-      <div class="equip-slot"><span>💨 DODGE</span><span id="hDodge">0%</span></div>
-      
-      <h3>🏆 PROGRESS</h3>
-      <div class="dim" id="progressStats"></div>
+<div class="app-container">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <button class="tab-btn active" onclick="switchTab('hunt')">⚔️ HUNT</button>
+        <button class="tab-btn" onclick="switchTab('guild')">🏰 GUILD</button>
+        <button class="tab-btn" onclick="switchTab('growth')">🧬 GROWTH</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-red" onclick="hardReset()" style="font-size: 0.7rem">⚠ RESET SAVE</button>
     </div>
 
-    <!-- Battle Arena -->
-    <div class="arena" id="arena">
-      <div class="turnband" id="turn">SELECT A ZONE TO BEGIN</div>
-      
-      <!-- Battle Scene -->
-      <div id="scene">
-        <div id="hero"></div>
-        <div id="enemy"></div>
-      </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- HUNT SCREEN -->
+        <div id="screen-hunt" class="screen active">
+            <div class="card" style="max-width: 250px; height: fit-content;">
+                <h2>ZONES</h2>
+                <div id="zone-list"></div>
+                <h3>STATS</h3>
+                <div style="font-size: 0.8rem; color: var(--dim); line-height: 1.6;">
+                    ⚔ ATK: <span id="stat-atk" style="color:var(--text)">0</span><br>
+                    🛡 DEF: <span id="stat-def" style="color:var(--text)">0</span><br>
+                    ✨ CRIT: <span id="stat-crit" style="color:var(--text)">0%</span><br>
+                    🔮 MAG: <span id="stat-mag" style="color:var(--text)">0</span>
+                </div>
+            </div>
 
-      <!-- Battle HUD -->
-      <div class="battle-hud">
-        <div class="hud-side hero">
-          <div class="name">
-            <span>🧙 YOU</span>
-            <span id="hHPt">0/0</span>
-          </div>
-          <div class="bar hp"><div id="hHPb"></div></div>
-          <div class="bar qi"><div id="hQib"></div></div>
-          <div class="buffs" id="hBuffs"></div>
+            <div class="arena-container">
+                <div id="turn-indicator" style="color: var(--yellow); letter-spacing: 2px; margin-bottom: 10px; font-weight: bold;">SELECT A ZONE</div>
+                
+                <div class="battle-scene">
+                    <div id="hero-sprite" class="sprite">
+                        <svg viewBox="0 0 100 100"><circle cx="50" cy="30" r="15" fill="#94a3b8"/><rect x="35" y="45" width="30" height="40" rx="5" fill="#64748b"/><rect x="25" y="50" width="10" height="30" rx="3" fill="#64748b"/><rect x="65" y="50" width="10" height="30" rx="3" fill="#64748b"/><rect x="45" y="45" width="10" height="45" fill="#cbd5e1"/></svg>
+                    </div>
+                    <div id="enemy-sprite" class="sprite enemy"></div>
+                </div>
+
+                <div class="battle-hud">
+                    <div class="unit-stats">
+                        <div class="unit-name hero-name"><span>YOU</span> <span id="player-hp-text">100/100</span></div>
+                        <div class="bar-container"><div class="bar-fill hp-fill" id="player-hp-bar" style="width: 100%"></div></div>
+                        <div class="bar-container" style="margin-top:4px; height:4px;"><div class="bar-fill qi-fill" id="player-qi-bar" style="width: 100%"></div></div>
+                    </div>
+                    <div class="unit-stats">
+                        <div class="unit-name enemy-name"><span id="enemy-name">---</span> <span id="enemy-hp-text">0/0</span></div>
+                        <div class="bar-container"><div class="bar-fill hp-fill" id="enemy-hp-bar" style="width: 0%"></div></div>
+                        <div id="enemy-buffs" style="font-size: 0.7rem; color: var(--orange); height: 15px;"></div>
+                    </div>
+                </div>
+
+                <div class="actions-grid">
+                    <button class="btn btn-green" id="btn-atk" onclick="combatAction('attack')" disabled>⚔ Attack</button>
+                    <button class="btn btn-orange" id="btn-skill1" onclick="combatAction('power')" disabled>💥 Power</button>
+                    <button class="btn btn-red" id="btn-skill2" onclick="combatAction('fire')" disabled>🔥 Fire</button>
+                    <button class="btn btn-blue" id="btn-heal" onclick="combatAction('heal')" disabled>💚 Heal</button>
+                    <button class="btn btn-blue" id="btn-shield" onclick="combatAction('shield')" disabled>🛡 Shield</button>
+                    <button class="btn btn-orange" id="btn-potion" onclick="usePotion()" disabled>🧪 Potion (<span id="pot-count">0</span>)</button>
+                    <button class="btn" id="btn-auto" onclick="toggleAuto()" disabled>▶ Auto</button>
+                    <button class="btn btn-red" id="btn-flee" onclick="combatAction('flee')" disabled>🏃 Flee</button>
+                </div>
+            </div>
         </div>
-        <div class="hud-side enemy">
-          <div class="name">
-            <span id="mName">—</span>
-            <span id="mHPt">0/0</span>
-          </div>
-          <div class="bar mhp"><div id="mHPb"></div></div>
-          <div class="bar xp" style="height:6px;margin-top:4px;"><div id="mXPb"></div></div>
-          <div class="buffs" id="mBuffs"></div>
-        </div>
-      </div>
 
-      <!-- Action Buttons -->
-      <div class="actions">
-        <button class="btn green icon" id="a-atk" onclick="act('atk')" disabled>
-          ⚔️ Attack
-        </button>
-        <button class="btn orange icon" id="a-pow" onclick="act('pow')" disabled>
-          💥 Power
-        </button>
-        <button class="btn red icon" id="a-fire" onclick="act('fire')" disabled>
-          🔥 Fireball
-        </button>
-        <button class="btn purple icon" id="a-poison" onclick="act('poison')" disabled>
-          ☠️ Poison
-        </button>
-        <button class="btn green icon" id="a-heal" onclick="act('heal')" disabled>
-          💚 Heal
-        </button>
-        <button class="btn blue icon" id="a-sh" onclick="act('sh')" disabled>
-          🛡️ Shield
-        </button>
-        <button class="btn pink icon" id="a-pot" onclick="act('pot')" disabled>
-          🧪 Potion
-        </button>
-        <button class="btn cyan icon" id="a-flee" onclick="act('flee')" disabled>
-          🏃 Flee
-        </button>
-      </div>
-      
-      <!-- Auto Toggle -->
-      <div style="display:flex;gap:8px;margin-top:10px;z-index:2;">
-        <button class="btn cyan" id="a-auto" onclick="toggleAuto()" disabled style="flex:1;">
-          ▶ AUTO BATTLE
-        </button>
-        <button class="btn purple" id="a-rush" onclick="toggleRush()" disabled style="flex:1;">
-          ⚡ RUSH MODE
-        </button>
-      </div>
-      
-      <!-- Victory/Defeat Overlay -->
-      <div class="overlay" id="ov">
-        <h1 id="ovT">VICTORY</h1>
-        <div id="ovS" class="dim" style="font-size:1rem;line-height:1.8;text-align:center;"></div>
-        <div style="display:flex;gap:12px;margin-top:10px;">
-          <button class="btn big green" id="ovBtn" onclick="closeOv()">⚔️ Continue</button>
-          <button class="btn big blue" id="ovLoot" onclick="collectLoot()" style="display:none;">🎁 Collect All</button>
-        </div>
-      </div>
-    </div>
-  </div>
+        <!-- GUILD SCREEN -->
+        <div id="screen-guild" class="screen">
+            <div class="card" style="text-align: center;">
+                <h2>GUILD CREST</h2>
+                <p style="color:var(--dim); font-size: 0.8rem; margin-bottom: 10px;">Click to generate Gold & Qi</p>
+                <div id="crest-btn" style="width: 150px; height: 150px; margin: 0 auto; cursor: pointer; transition: transform 0.1s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'" onclick="clickCrest(event)">
+                    <svg viewBox="0 0 200 200" width="100%" height="100%"><path d="M100 20 L160 60 L160 120 L100 180 L40 120 L40 60 Z" fill="none" stroke="#4ade80" stroke-width="4"/><circle cx="100" cy="100" r="20" fill="#22d3ee" opacity="0.8"/></svg>
+                </div>
+                <div style="margin-top: 15px; color: var(--yellow);">🏺 Relics: <span id="relic-count">0</span></div>
+            </div>
 
-  <!-- GUILD Screen -->
-  <div class="screen" id="s-guild">
-    <!-- Guild Crest -->
-    <div class="card" style="width:280px;">
-      <h2>🏅 GUILD CREST</h2>
-      <div class="center dim" style="margin-bottom:12px;">Click to gather Gold + Qi</div>
-      <div class="crest" id="crest" onclick="clickCrest(event)">
-        <svg viewBox="0 0 200 170" width="180" height="160">
-          <defs>
-            <linearGradient id="crestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#10b981"/>
-              <stop offset="100%" style="stop-color:#34d399"/>
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          <polygon points="100,10 150,85 100,160 50,85" fill="none" stroke="url(#crestGrad)" stroke-width="4" filter="url(#glow)"/>
-          <polygon points="100,40 132,85 100,130 68,85" fill="#1a3a2a" stroke="url(#crestGrad)" stroke-width="2"/>
-          <circle cx="100" cy="85" r="12" fill="#06b6d4" filter="url(#glow)"/>
-          <circle cx="100" cy="85" r="6" fill="#a7f3d0"/>
-        </svg>
-      </div>
-      <div class="qiorb">
-        <div class="orb"></div>
-        <span class="dim" style="font-size:0.75rem;">Qi Orb</span>
-      </div>
-      <div class="center" style="margin-top:12px;">
-        <span class="badge" id="gRelic">🏺 Relics: 0</span>
-      </div>
-      <div class="center dim" style="margin-top:8px;font-size:0.7rem;" id="crestBonus"></div>
-    </div>
+            <div class="card">
+                <h2>PARTY MEMBERS</h2>
+                <div id="companion-list"></div>
+                <button class="btn btn-green" style="width: 100%; margin-top: 10px;" onclick="buyCompanion()">Hire Random (+50g)</button>
+            </div>
 
-    <!-- Party Companions -->
-    <div class="card" style="width:340px;max-height:580px;overflow-y:auto;">
-      <h2>👥 PARTY COMPANIONS</h2>
-      <div class="center dim" style="color:var(--cyan);margin-bottom:12px;" id="gParty"></div>
-      <div id="comps"></div>
-    </div>
+            <div class="card">
+                <h2>HERB GARDEN</h2>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <div style="flex:1; text-align:center; background:var(--bg); padding: 10px; border-radius: 6px;">
+                        <div style="font-size: 1.5rem;">🌿</div>
+                        <div id="herb-count">0</div>
+                    </div>
+                    <div style="flex:1; text-align:center; background:var(--bg); padding: 10px; border-radius: 6px;">
+                        <div style="font-size: 1.5rem;">🧪</div>
+                        <div id="potion-count-display">0</div>
+                    </div>
+                </div>
+                <div id="garden-plots" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;"></div>
+                <button class="btn" style="width: 100%; margin-top: 10px;" onclick="plantAll()">Plant All (25g)</button>
+                <button class="btn btn-orange" style="width: 100%; margin-top: 5px;" onclick="brewPotion()">Brew Potion (3 Herbs)</button>
+            </div>
+        </div>
 
-    <!-- Spirit Farm -->
-    <div class="card" style="width:260px;">
-      <h2>🌿 SPIRIT FARM</h2>
-      <div class="center dim" style="font-size:0.72rem;">Herbs auto-harvest → Potions & Qi</div>
-      <div class="center" style="margin:12px 0;display:flex;gap:16px;justify-content:center;">
-        <div style="text-align:center;">
-          <div style="font-size:1.5rem;">🌿</div>
-          <div class="dim" id="gHerb" style="font-size:0.7rem;">0</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:1.5rem;">🧪</div>
-          <div class="dim" id="gPot" style="font-size:0.7rem;">0</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:1.5rem;">⚡</div>
-          <div class="dim" id="gFarmQi" style="font-size:0.7rem;">+0</div>
-        </div>
-      </div>
-      <div class="farmrow" id="plots"></div>
-      <button class="btn green" style="width:100%;margin-top:12px;" onclick="plantAll()">
-        🌱 Plant All (25g each)
-      </button>
-      <button class="btn orange" style="width:100%;margin-top:8px;" onclick="brew()">
-        🧪 Brew Potion (3 herbs)
-      </button>
-      <button class="btn cyan" style="width:100%;margin-top:8px;" onclick="harvestAll()">
-        ✋ Harvest All
-      </button>
-    </div>
-  </div>
+        <!-- GROWTH SCREEN -->
+        <div id="screen-growth" class="screen">
+            <div class="card">
+                <h2>CHARACTER</h2>
+                <div style="text-align: center; color: var(--yellow); margin-bottom: 10px;">Points Available: <span id="stat-points">0</span></div>
+                <div id="stat-allocation"></div>
+                
+                <h3>CLASS</h3>
+                <div id="class-display" style="text-align: center; color: var(--dim); margin-bottom: 10px;">None (Unlock at Lvl 5)</div>
+                <div id="class-buttons" style="display: none; gap: 5px;">
+                    <button class="btn btn-red" onclick="chooseClass('Warrior')">Warrior</button>
+                    <button class="btn btn-blue" onclick="chooseClass('Mage')">Mage</button>
+                    <button class="btn btn-green" onclick="chooseClass('Ranger')">Ranger</button>
+                </div>
 
-  <!-- GROWTH Screen -->
-  <div class="screen" id="s-growth">
-    <!-- Character Stats -->
-    <div class="card" style="width:280px;max-height:600px;overflow-y:auto;">
-      <h2>👤 CHARACTER</h2>
-      <div class="center" style="color:var(--yellow);font-weight:700;margin-bottom:12px;" id="grPts"></div>
-      
-      <div style="margin-bottom:16px;" id="statrows"></div>
-      
-      <h3>⚔️ CLASS</h3>
-      <div class="dim" id="grCls" style="font-size:0.75rem;margin-bottom:8px;"></div>
-      <div class="farmrow" style="margin-bottom:12px;">
-        <button class="btn red" id="cW" onclick="pickClass('Warrior')" disabled>Warrior</button>
-        <button class="btn purple" id="cM" onclick="pickClass('Mage')" disabled>Mage</button>
-        <button class="btn blue" id="cR" onclick="pickClass('Ranger')" disabled>Ranger</button>
-      </div>
-      
-      <h3>📜 TITLES</h3>
-      <div class="titles" id="grTitles"></div>
-      
-      <h3>⚙️ EQUIPMENT</h3>
-      <div class="dim" id="grEquip" style="font-size:0.72rem;line-height:1.8;"></div>
+                <h3>EQUIPMENT</h3>
+                <div style="font-size: 0.8rem; color: var(--dim);" id="equip-display">
+                    Weapon: Rusty Sword<br>
+                    Armor: Rags
+                </div>
+            </div>
+
+            <div class="card" style="flex: 1; max-width: 500px;">
+                <h2>SKILL TREE <span style="font-size: 0.8rem; color: var(--cyan);">(SP: <span id="sp-count">0</span>)</span></h2>
+                <div id="skill-tree"></div>
+            </div>
+        </div>
+
     </div>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="modal-overlay">
+    <div class="modal">
+        <h1 id="modal-title">VICTORY</h1>
+        <p id="modal-desc">+10 Gold, +20 XP</p>
+        <button class="btn btn-big btn-green" onclick="closeModal()">CONTINUE</button>
+    </div>
+</div>
+
+<script>
+/** 
+ * SYSTEM HUNTER: ASCENSION 
+ * Complete Single-File Version
+ */
+
+// --- CONFIG & DATA ---
+const ZONES = [
+    { name: "Verdant Woods", level: 1, color: "#4ade80" },
+    { name: "Dark Caverns", level: 3, color: "#94a3b8" },
+    { name: "Frozen Peaks", level: 5, color: "#60a5fa" },
+    { name: "Molten Depths", level: 8, color: "#fb923c" },
+    { name: "Sky Citadel", level: 12, color: "#facc15" },
+    { name: "Void Rift", level: 15, color: "#c084fc" }
+];
+
+const ENEMIES = [
+    ["Slime", "Boar", "Treant"],
+    ["Bat", "Skeleton", "Golem"],
+    ["Ice Wolf", "Wraith", "Yeti"],
+    ["Imp", "Serpent", "Titan"],
+    ["Hawk", "Giant", "Lord"],
+    ["Spawn", "Fiend", "Overlord"]
+];
+
+const BOSSES = ["Elder Treant", "Bone King", "Frost Lord", "Inferno Beast", "Sky Emperor", "Void God"];
+
+const COMPANIONS = [
+    { name: "Apprentice", cost: 50, gps: 1, role: "+1 GPS" },
+    { name: "Mercenary", cost: 250, gps: 5, role: "+5 GPS" },
+    { name: "Mage", cost: 1000, gps: 25, role: "+25 GPS" },
+    { name: "Knight", cost: 5000, gps: 100, role: "+100 GPS" },
+    { name: "Dragon", cost: 50000, gps: 500, role: "+500 GPS" }
+];
+
+const SKILLS = [
+    { id: "str1", name: "Iron Grip", cost: 1, req: null, desc: "+2 ATK", type: "STR" },
+    { id: "str2", name: "Berserker", cost: 2, req: "str1", desc: "+5% Crit", type: "STR" },
+    { id: "int1", name: "Spark", cost: 1, req: null, desc: "+3 MAG", type: "INT" },
+    { id: "int2", name: "Fireball", cost: 2, req: "int1", desc: "Fire DoT +2", type: "INT" },
+    { id: "vit1", name: "Tough Skin", cost: 1, req: null, desc: "+20 HP", type: "VIT" },
+    { id: "vit2", name: "Regen", cost: 2, req: "vit1", desc: "+1 HP/s", type: "VIT" }
+];
+
+// --- STATE ---
+let S = {
+    gold: 0, gps: 0, qi: 20, maxQi: 20,
+    level: 1, xp: 0, maxXp: 100,
+    stats: { str: 5, vit: 5, dex: 5, int: 5 },
+    points: 0, sp: 0,
+    hp: 100, maxHp: 100,
+    class: null,
+    zoneIdx: -1,
+    inCombat: false,
+    enemy: null,
+    auto: false,
+    relics: 0,
+    herbs: 0, potions: 3,
+    plots: [0, 0, 0, 0], // timestamps
+    companions: [],
+    skills: [],
+    equipment: { w: "Rusty Sword", a: "Rags" },
+    lastSave: Date.now()
+};
+
+let timers = {};
+let combatTimer = null;
+
+// --- CORE FUNCTIONS ---
+
+function init() {
+    loadGame();
+    renderZones();
+    renderCompanions();
+    renderGarden();
+    renderStats();
+    renderSkills();
+    updateHUD();
     
-    <!-- Skill Tree -->
-    <div class="card" style="flex:1;max-width:620px;max-height:600px;overflow-y:auto;">
-      <h2>🌳 SKILL TREE — <span style="color:var(--cyan);" id="grSP">0</span> pts</h2>
-      <div class="skilltree" id="tree"></div>
-    </div>
-  </div>
+    // Game Loop
+    setInterval(gameLoop, 100);
+    setInterval(saveGame, 10000);
+    
+    toast("Welcome back, Hunter.");
+}
 
-  <!-- INVENTORY Screen -->
-  <div class="screen" id="s-inventory">
-    <div class="card" style="width:100%;max-width:800px;">
-      <h2>🎒 INVENTORY</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;" id="inventoryGrid"></div>
-      <div class="center dim" id="invEmpty" style="margin-top:40px;padding:40px;">
-        Inventory is empty. Defeat enemies to collect items!
-      </div>
-    </div>
-  </div>
+function gameLoop() {
+    // Passive Gold
+    if (S.gps > 0) {
+        S.gold += S.gps / 10;
+    }
+    
+    // Passive Qi Regen
+    if (S.qi < S.maxQi) {
+        S.qi = Math.min(S.maxQi, S.qi + 0.05 + (S.stats.int * 0.01));
+    }
+    
+    // Garden Growth
+    const now = Date.now();
+    let harvested = false;
+    S.plots.forEach((t, i) => {
+        if (t > 0 && now - t > 5000) { // 5 sec grow time for demo
+            S.plots[i] = 0;
+            S.herbs++;
+            harvested = true;
+        }
+    });
+    if (harvested) {
+        renderGarden();
+        toast("Herbs Harvested! 🌿");
+    }
+    
+    // Combat Tick (DoTs, Auto)
+    if (S.inCombat) {
+        handleCombatTick();
+    }
+    
+    updateHUD();
+}
 
-  <!-- SETTINGS Screen -->
-  <div class="screen" id="s-settings">
-    <div class="card" style="width:320px;">
-      <h2>⚙️ SETTINGS</h2>
-      
-      <h3>🎮 GAMEPLAY</h3>
-      <div class="statrow">
-        <span>Auto-Battle Delay</span>
-        <select id="autoDelay" onchange="updateSettings()" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:6px;border-radius:6px;">
-          <option value="300">Fast (300ms)</option>
-          <option value="500" selected>Normal (500ms)</option>
-          <option value="800">Slow (800ms)</option>
-        </select>
-      </div>
-      
-      <div class="statrow">
-        <span>Rush Mode Speed</span>
-        <select id="rushSpeed" onchange="updateSettings()" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:6px;border-radius:6px;">
-          <option value="50">Ultra (50ms)</option>
-          <option value="100" selected>Fast (100ms)</option>
-          <option value="200">Normal (200ms)</option>
-        </select>
-      </div>
-      
-      <h3>🔊 AUDIO</h3>
-      <div class="statrow">
-        <span>Sound Effects</span>
-        <label class="btn" style="width:60px;padding:4px;">
-          <input type="checkbox" id="sfxEnabled" checked onchange="updateSettings()" style="accent-color:var(--green);">
-        </label>
-      </div>
-      
-      <h3>💾 SAVE DATA</h3>
-      <button class="btn green" style="width:100%;margin-bottom:8px;" onclick="saveGame(true)">
-        💾 Save Now
-      </button>
-      <button class="btn orange" style="width:100%;margin-bottom:8px;" onclick="exportSave()">
-        📤 Export Save
-      </button>
-      <button class="btn blue" style="width:100%;margin-bottom:8px;" onclick="importSave()">
-        📥 Import Save
-      </button>
-      <button class="btn red" style="width:100%;" onclick="hardReset()">
-        ☢️ HARD RESET
-      </button>
-      
-      <h3>ℹ️ GAME INFO</h3>
-      <div class="dim" style="font-size:0.7rem;line-height:1.8;">
-        System Hunter: Ascension v2.0<br>
-        Built with ❤️ for idle RPG fans<br>
-        <br>
-        <b>Tips:</b><br>
-        • Click the Guild Crest for bonus resources<br>
-        • Auto-battle continues after victories<br>
-        • Rush mode speeds up combat significantly<br>
-        • Harvest herbs regularly for potions<br>
-      </div>
-    </div>
-  </div>
+// --- COMBAT SYSTEM ---
 
-  <!-- Hidden file input for save import -->
-  <input type="file" id="saveFile" accept=".json" style="display:none;" onchange="handleFileImport(event)">
+function startCombat(zoneIdx) {
+    if (S.inCombat) return;
+    if (S.hp <= 0) {
+        S.hp = S.maxHp;
+        toast("You feel revived.");
+    }
 
-  <script src="game.js"></script>
+    S.zoneIdx = zoneIdx;
+    S.inCombat = true;
+    S.auto = false; // Reset auto on new fight
+    updateButtons();
+
+    const zData = ZONES[zoneIdx];
+    const isBoss = Math.random() < 0.2; // 20% boss chance
+    const mobList = isBoss ? [BOSSES[zoneIdx]] : ENEMIES[zoneIdx];
+    const name = mobList[Math.floor(Math.random() * mobList.length)];
+    
+    const scale = 1 + (zoneIdx * 0.5);
+    S.enemy = {
+        name: name + (isBoss ? " [BOSS]" : ""),
+        maxHp: Math.floor((50 + (S.level * 20)) * scale),
+        hp: Math.floor((50 + (S.level * 20)) * scale),
+        atk: Math.floor((10 + (S.level * 5)) * scale),
+        isBoss: isBoss,
+        burn: 0
+    };
+
+    // Visuals
+    document.getElementById('turn-indicator').textContent = "COMBAT START";
+    document.getElementById('turn-indicator').style.color = "var(--red)";
+    
+    const sprite = document.getElementById('enemy-sprite');
+    sprite.innerHTML = getEnemySVG(zoneIdx, isBoss);
+    sprite.classList.remove('dead');
+    sprite.style.opacity = '1';
+    
+    renderBattleHUD();
+}
+
+function combatAction(type) {
+    if (!S.inCombat) return;
+    
+    let dmg = 0;
+    let log = "";
+    
+    // Player Turn
+    if (type === 'attack') {
+        const base = S.stats.str * 2;
+        const crit = Math.random() * 100 < (5 + S.stats.dex);
+        dmg = Math.floor(base * (crit ? 2 : 1));
+        showFloatText(dmg, 'enemy-sprite', crit ? '#facc15' : '#fff');
+        animSprite('hero-sprite', 'attack-anim');
+        setTimeout(() => animSprite('enemy-sprite', 'hit'), 150);
+    } 
+    else if (type === 'power') {
+        if (S.qi < 10) { toast("Not enough Qi!", "red"); return; }
+        S.qi -= 10;
+        dmg = Math.floor(S.stats.str * 4);
+        showFloatText(dmg, 'enemy-sprite', '#fb923c');
+        animSprite('hero-sprite', 'attack-anim');
+    }
+    else if (type === 'fire') {
+        if (S.qi < 15) { toast("Not enough Qi!", "red"); return; }
+        S.qi -= 15;
+        dmg = Math.floor(S.stats.int * 3);
+        S.enemy.burn = 3; // 3 turns
+        showFloatText(dmg, 'enemy-sprite', '#ef4444');
+        toast("Enemy Burning!");
+    }
+    else if (type === 'heal') {
+        if (S.qi < 10) { toast("Not enough Qi!", "red"); return; }
+        S.qi -= 10;
+        const heal = Math.floor(S.maxHp * 0.3);
+        S.hp = Math.min(S.maxHp, S.hp + heal);
+        showFloatText("+" + heal, 'hero-sprite', '#4ade80');
+        renderBattleHUD();
+        enemyTurn(); // Heal takes a turn
+        return;
+    }
+    else if (type === 'shield') {
+        if (S.qi < 8) { toast("Not enough Qi!", "red"); return; }
+        S.qi -= 8;
+        // Simplified shield: just heal small amount + flavor for now
+        const heal = Math.floor(S.maxHp * 0.1);
+        S.hp = Math.min(S.maxHp, S.hp + heal);
+        toast("Shield Up!");
+        enemyTurn();
+        return;
+    }
+    else if (type === 'flee') {
+        S.inCombat = false;
+        document.getElementById('turn-indicator').textContent = "FLED SUCCESSFULLY";
+        setTimeout(() => {
+            document.getElementById('turn-indicator').textContent = "SELECT A ZONE";
+            document.getElementById('turn-indicator').style.color = "var(--yellow)";
+            document.getElementById('enemy-sprite').innerHTML = '';
+            updateButtons();
+        }, 1000);
+        return;
+    }
+
+    if (dmg > 0) {
+        S.enemy.hp -= dmg;
+        renderBattleHUD();
+        
+        if (S.enemy.hp <= 0) {
+            winCombat();
+            return;
+        }
+        
+        setTimeout(enemyTurn, 400);
+    }
+}
+
+function enemyTurn() {
+    if (!S.inCombat || S.enemy.hp <= 0) return;
+
+    // DoT Tick
+    if (S.enemy.burn > 0) {
+        const burnDmg = 5 + (S.skills.includes('int2') ? 5 : 0);
+        S.enemy.hp -= burnDmg;
+        S.enemy.burn--;
+        showFloatText(burnDmg, 'enemy-sprite', '#ef4444');
+        renderBattleHUD();
+        if (S.enemy.hp <= 0) { winCombat(); return; }
+    }
+
+    // Enemy Attack
+    const dmg = Math.max(1, S.enemy.atk - Math.floor(S.stats.vit / 2));
+    S.hp -= dmg;
+    animSprite('enemy-sprite', 'attack-anim');
+    setTimeout(() => animSprite('hero-sprite', 'hit'), 150);
+    showFloatText("-" + dmg, 'hero-sprite', '#ef4444');
+    
+    renderBattleHUD();
+
+    if (S.hp <= 0) {
+        loseCombat();
+    } else if (S.auto) {
+        setTimeout(autoLogic, 500);
+    }
+}
+
+function autoLogic() {
+    if (!S.auto || !S.inCombat) return;
+    
+    if (S.hp < S.maxHp * 0.4 && S.qi >= 10) {
+        combatAction('heal');
+    } else if (S.qi >= 15 && S.skills.includes('int2')) {
+        combatAction('fire');
+    } else if (S.qi >= 10) {
+        combatAction('power');
+    } else {
+        combatAction('attack');
+    }
+}
+
+function winCombat() {
+    S.inCombat = false;
+    document.getElementById('enemy-sprite').classList.add('dead');
+    
+    const goldGain = Math.floor(10 + (S.zoneIdx * 10) + (S.enemy.isBoss ? 50 : 0));
+    const xpGain = Math.floor(20 + (S.zoneIdx * 15) + (S.enemy.isBoss ? 100 : 0));
+    
+    S.gold += goldGain;
+    gainXp(xpGain);
+    
+    // Chance for loot
+    if (Math.random() < 0.3) {
+        S.potions++;
+        toast("Found a Potion!", "green");
+    }
+    
+    showModal("VICTORY", `Gained ${goldGain} Gold & ${xpGain} XP`);
+    updateButtons();
+}
+
+function loseCombat() {
+    S.inCombat = false;
+    S.hp = Math.floor(S.maxHp * 0.5); // Revive with half HP
+    showModal("DEFEATED", "You drag yourself back to camp...");
+    updateButtons();
+}
+
+function handleCombatTick() {
+    // Reserved for continuous effects if needed
+}
+
+// --- PROGRESSION ---
+
+function gainXp(amount) {
+    S.xp += amount;
+    if (S.xp >= S.maxXp) {
+        S.level++;
+        S.xp -= S.maxXp;
+        S.maxXp = Math.floor(S.maxXp * 1.5);
+        S.points += 2;
+        S.sp += 1;
+        S.hp = S.maxHp; // Full heal on level up
+        S.qi = S.maxQi;
+        toast(`LEVEL UP! You are now Level ${S.level}`, "yellow");
+        renderStats();
+        renderSkills();
+    }
+}
+
+function chooseClass(cls) {
+    if (S.class) return;
+    S.class = cls;
+    if (cls === 'Warrior') S.stats.str += 5;
+    if (cls === 'Mage') S.stats.int += 5;
+    if (cls === 'Ranger') S.stats.dex += 5;
+    
+    document.getElementById('class-buttons').style.display = 'none';
+    document.getElementById('class-display').textContent = cls;
+    document.getElementById('class-display').style.color = 'var(--green)';
+    toast(`Class Awakened: ${cls}!`, "cyan");
+    renderStats();
+}
+
+function allocStat(stat) {
+    if (S.points <= 0) return;
+    S.points--;
+    S.stats[stat]++;
+    
+    if (stat === 'vit') {
+        S.maxHp += 10;
+        S.hp += 10;
+    } else if (stat === 'int') {
+        S.maxQi += 5;
+        S.qi += 5;
+    }
+    
+    renderStats();
+    updateHUD();
+}
+
+function buySkill(id) {
+    const skill = SKILLS.find(s => s.id === id);
+    if (!skill || S.sp < skill.cost || S.skills.includes(id)) return;
+    if (skill.req && !S.skills.includes(skill.req)) return;
+    
+    S.sp -= skill.cost;
+    S.skills.push(id);
+    toast(`Learned ${skill.name}!`, "cyan");
+    renderSkills();
+    renderStats(); // Recalc stats if needed
+}
+
+// --- GUILD & GARDEN ---
+
+function clickCrest(e) {
+    const amount = 1 + Math.floor(S.level / 2);
+    S.gold += amount;
+    S.qi = Math.min(S.maxQi, S.qi + 1);
+    
+    // Float text
+    const rect = e.target.getBoundingClientRect();
+    const floatEl = document.createElement('div');
+    floatEl.className = 'floating-text';
+    floatEl.textContent = `+${amount}g`;
+    floatEl.style.left = (e.clientX - rect.left) + 'px';
+    floatEl.style.top = (e.clientY - rect.top) + 'px';
+    floatEl.style.color = '#facc15';
+    e.target.appendChild(floatEl);
+    setTimeout(() => floatEl.remove(), 1000);
+    
+    updateHUD();
+}
+
+function plantAll() {
+    if (S.gold >= 25 * S.plots.length) {
+        S.gold -= 25 * S.plots.length;
+        S.plots = S.plots.map(() => Date.now());
+        renderGarden();
+        updateHUD();
+    } else {
+        toast("Not enough gold!", "red");
+    }
+}
+
+function brewPotion() {
+    if (S.herbs >= 3) {
+        S.herbs -= 3;
+        S.potions++;
+        renderGarden();
+        toast("Potion Brewed!", "orange");
+    }
+}
+
+function usePotion() {
+    if (S.potions > 0 && S.hp < S.maxHp) {
+        S.potions--;
+        S.hp = Math.min(S.maxHp, S.hp + Math.floor(S.maxHp * 0.5));
+        renderGarden();
+        renderBattleHUD();
+        toast("Glug glug... (+HP)", "green");
+        
+        if (S.inCombat) enemyTurn();
+    }
+}
+
+function buyCompanion() {
+    if (S.gold >= 50) {
+        S.gold -= 50;
+        // Simple random tier logic
+        const tier = Math.min(COMPANIONS.length - 1, Math.floor(Math.random() * 3));
+        const comp = COMPANIONS[tier];
+        S.companions.push(comp.name);
+        S.gps += comp.gps;
+        renderCompanions();
+        updateHUD();
+        toast(`Hired ${comp.name}!`, "green");
+    }
+}
+
+// --- UI RENDERERS ---
+
+function switchTab(tabId) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(`screen-${tabId}`).classList.add('active');
+    document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+}
+
+function renderZones() {
+    const container = document.getElementById('zone-list');
+    container.innerHTML = '';
+    ZONES.forEach((z, i) => {
+        const div = document.createElement('div');
+        div.className = `list-item ${S.zoneIdx === i ? 'selected' : ''}`;
+        div.innerHTML = `<span>${z.name}</span> <small style="color:var(--dim)">Lv.${z.level}</small>`;
+        div.onclick = () => startCombat(i);
+        container.appendChild(div);
+    });
+}
+
+function renderBattleHUD() {
+    if (!S.enemy) return;
+    document.getElementById('enemy-name').textContent = S.enemy.name;
+    document.getElementById('enemy-hp-text').textContent = `${Math.max(0, S.enemy.hp)}/${S.enemy.maxHp}`;
+    document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (S.enemy.hp / S.enemy.maxHp) * 100)}%`;
+    
+    const buffs = S.enemy.burn > 0 ? '🔥 BURN' : '';
+    document.getElementById('enemy-buffs').textContent = buffs;
+    
+    document.getElementById('player-hp-text').textContent = `${Math.max(0, S.hp)}/${S.maxHp}`;
+    document.getElementById('player-hp-bar').style.width = `${Math.max(0, (S.hp / S.maxHp) * 100)}%`;
+    document.getElementById('player-qi-bar').style.width = `${(S.qi / S.maxQi) * 100}%`;
+}
+
+function updateHUD() {
+    document.getElementById('hud-gold').textContent = Math.floor(S.gold);
+    document.getElementById('hud-gps').textContent = S.gps;
+    document.getElementById('hud-lvl').textContent = S.level;
+    document.getElementById('hud-xp-bar').style.width = `${(S.xp / S.maxXp) * 100}%`;
+    document.getElementById('hud-qi').textContent = Math.floor(S.qi);
+    document.getElementById('hud-max-qi').textContent = S.maxQi;
+    document.getElementById('hud-qi-bar').style.width = `${(S.qi / S.maxQi) * 100}%`;
+    
+    document.getElementById('pot-count').textContent = S.potions;
+    document.getElementById('relic-count').textContent = S.relics;
+}
+
+function renderStats() {
+    // Calc derived stats
+    const atk = S.stats.str * 2;
+    const def = Math.floor(S.stats.vit / 2);
+    const crit = 5 + S.stats.dex;
+    const mag = S.stats.int * 2;
+    
+    document.getElementById('stat-atk').textContent = atk;
+    document.getElementById('stat-def').textContent = def;
+    document.getElementById('stat-crit').textContent = crit + '%';
+    document.getElementById('stat-mag').textContent = mag;
+    
+    document.getElementById('stat-points').textContent = S.points;
+    document.getElementById('sp-count').textContent = S.sp;
+    
+    // Allocation Buttons
+    const cont = document.getElementById('stat-allocation');
+    cont.innerHTML = '';
+    [['STR', 'str'], ['VIT', 'vit'], ['DEX', 'dex'], ['INT', 'int']].forEach(([label, key]) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.marginBottom = '5px';
+        row.innerHTML = `
+            <span>${label}: ${S.stats[key]}</span>
+            <button class="btn btn-green" style="padding: 2px 8px;" onclick="allocStat('${key}')" ${S.points<=0?'disabled':''}>+</button>
+        `;
+        cont.appendChild(row);
+    });
+    
+    // Class
+    if (S.level >= 5 && !S.class) {
+        document.getElementById('class-buttons').style.display = 'flex';
+        document.getElementById('class-display').textContent = "Choose your path!";
+    }
+    
+    document.getElementById('equip-display').innerHTML = `Weapon: ${S.equipment.w}<br>Armor: ${S.equipment.a}`;
+}
+
+function renderSkills() {
+    const cont = document.getElementById('skill-tree');
+    cont.innerHTML = '';
+    SKILLS.forEach(s => {
+        const owned = S.skills.includes(s.id);
+        const canBuy = !owned && S.sp >= s.cost && (!s.req || S.skills.includes(s.req));
+        
+        const div = document.createElement('div');
+        div.className = `skill-node ${owned ? 'unlocked' : (canBuy ? 'available' : 'locked')}`;
+        div.innerHTML = `
+            <div style="font-weight:bold; color:${owned?'var(--green)':'var(--text)'}">${s.name}</div>
+            <div style="font-size:0.8rem; color:var(--dim)">${s.desc}</div>
+            <div style="font-size:0.7rem; margin-top:4px;">Cost: ${s.cost} SP ${owned?'✓':''}</div>
+        `;
+        if (canBuy) div.onclick = () => buySkill(s.id);
+        cont.appendChild(div);
+    });
+}
+
+function renderCompanions() {
+    const cont = document.getElementById('companion-list');
+    cont.innerHTML = S.companions.length ? '' : '<div style="color:var(--dim); font-size:0.8rem;">No companions hired.</div>';
+    S.companions.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.textContent = c;
+        cont.appendChild(div);
+    });
+}
+
+function renderGarden() {
+    document.getElementById('herb-count').textContent = S.herbs;
+    document.getElementById('potion-count-display').textContent = S.potions;
+    
+    const cont = document.getElementById('garden-plots');
+    cont.innerHTML = '';
+    S.plots.forEach((t, i) => {
+        const div = document.createElement('div');
+        div.style.background = t === 0 ? '#334155' : '#1e293b';
+        div.style.height = '40px';
+        div.style.borderRadius = '4px';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.fontSize = '1.2rem';
+        div.textContent = t === 0 ? '🕳️' : '🌱';
+        cont.appendChild(div);
+    });
+}
+
+function updateButtons() {
+    const disabled = !S.inCombat;
+    ['btn-atk', 'btn-skill1', 'btn-skill2', 'btn-heal', 'btn-shield', 'btn-flee'].forEach(id => {
+        document.getElementById(id).disabled = disabled;
+    });
+    document.getElementById('btn-auto').disabled = !S.inCombat;
+    document.getElementById('btn-auto').textContent = S.auto ? '⏸ Auto' : '▶ Auto';
+    document.getElementById('btn-potion').disabled = disabled || S.potions === 0;
+}
+
+function toggleAuto() {
+    S.auto = !S.auto;
+    updateButtons();
+    if (S.auto && S.inCombat) autoLogic();
+}
+
+// --- UTILS ---
+
+function toast(msg, color = 'cyan') {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    t.style.borderColor = `var(--${color})`;
+    document.getElementById('toast-container').appendChild(t);
+    setTimeout(() => t.remove(), 2800);
+}
+
+function showFloatText(txt, targetId, color) {
+    const target = document.getElementById(targetId);
+    const rect = target.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'floating-text';
+    el.textContent = txt;
+    el.style.color = color;
+    el.style.left = (rect.left + rect.width/2 - 20) + 'px';
+    el.style.top = (rect.top) + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+}
+
+function animSprite(id, animClass) {
+    const el = document.getElementById(id);
+    el.classList.remove(animClass);
+    void el.offsetWidth; // trigger reflow
+    el.classList.add(animClass);
+}
+
+function showModal(title, desc) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-desc').textContent = desc;
+    document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+    if (!S.inCombat) {
+        document.getElementById('turn-indicator').textContent = "SELECT A ZONE";
+        document.getElementById('turn-indicator').style.color = "var(--yellow)";
+        document.getElementById('enemy-sprite').innerHTML = '';
+        updateButtons();
+    }
+}
+
+function getEnemySVG(zoneIdx, isBoss) {
+    const colors = ['#4ade80', '#94a3b8', '#60a5fa', '#fb923c', '#facc15', '#c084fc'];
+    const c = colors[zoneIdx] || '#fff';
+    const shape = isBoss ? '<circle cx="50" cy="50" r="40" />' : '<rect x="20" y="20" width="60" height="60" rx="10" />';
+    return `<svg viewBox="0 0 100 100" width="100%" height="100%">${shape}<circle cx="35" cy="40" r="5" fill="#000"/><circle cx="65" cy="40" r="5" fill="#000"/></svg>`;
+}
+
+// --- SAVE SYSTEM ---
+
+function saveGame() {
+    localStorage.setItem('systemHunterSave', JSON.stringify(S));
+}
+
+function loadGame() {
+    const data = localStorage.getItem('systemHunterSave');
+    if (data) {
+        const parsed = JSON.parse(data);
+        Object.assign(S, parsed);
+        // Fix missing fields if updated
+        if (!S.skills) S.skills = [];
+        if (!S.companions) S.companions = [];
+    }
+}
+
+function hardReset() {
+    if(confirm("Are you sure? This wipes all progress.")) {
+        localStorage.removeItem('systemHunterSave');
+        location.reload();
+    }
+}
+
+// Start
+init();
+
+</script>
 </body>
 </html>
