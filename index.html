@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Hunter - Ascension</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Background Particles -->
+  <div class="bg-particles" id="particles"></div>
+
+  <!-- Toast Container -->
+  <div id="toasts"></div>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab on" id="t-hunt" onclick="show('hunt')">⚔️ HUNT</button>
+    <button class="tab" id="t-guild" onclick="show('guild')">🏰 GUILD</button>
+    <button class="tab" id="t-growth" onclick="show('growth')">🧬 GROWTH</button>
+    <button class="tab" id="t-inventory" onclick="show('inventory')">🎒 INVENTORY</button>
+    <button class="tab" id="t-settings" onclick="show('settings')">⚙️ SETTINGS</button>
+  </div>
+
+  <!-- Top HUD -->
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-icon">💰</span>
+      <span class="hud-val" id="hudGold">0</span>
+      <span class="hud-sub" id="hudGPS">+0/s</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-icon">⚡</span>
+      <div class="hud-barwrap">
+        <div class="hud-fill qi" id="hudQiBar"></div>
+      </div>
+      <span class="hud-val" id="hudQi">0/0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-icon">⭐</span>
+      <span class="hud-val" id="hudLvl">Lv.1</span>
+      <div class="hud-barwrap">
+        <div class="hud-fill xp" id="hudXpBar"></div>
+      </div>
+    </div>
+    <div class="hud-item">
+      <span class="hud-icon">❤️</span>
+      <div class="hud-barwrap">
+        <div class="hud-fill hp" id="hudHpBar"></div>
+      </div>
+      <span class="hud-val" id="hudHp">0/0</span>
+    </div>
+  </div>
+
+  <!-- HUNT Screen -->
+  <div class="screen on" id="s-hunt">
+    <!-- Zone Selection Card -->
+    <div class="card" style="width:240px;max-height:580px;overflow-y:auto;">
+      <h2>🗺️ ZONES</h2>
+      <div id="zones"></div>
+      
+      <h3>📊 COMBAT STATS</h3>
+      <div class="equip-slot"><span>⚔ ATK</span><span id="hAtk">0</span></div>
+      <div class="equip-slot"><span>🛡 DEF</span><span id="hDef">0</span></div>
+      <div class="equip-slot"><span>🔮 MAG</span><span id="hMag">0</span></div>
+      <div class="equip-slot"><span>✨ CRIT</span><span id="hCrit">0%</span></div>
+      <div class="equip-slot"><span>💨 DODGE</span><span id="hDodge">0%</span></div>
+      
+      <h3>🏆 PROGRESS</h3>
+      <div class="dim" id="progressStats"></div>
+    </div>
+
+    <!-- Battle Arena -->
+    <div class="arena" id="arena">
+      <div class="turnband" id="turn">SELECT A ZONE TO BEGIN</div>
+      
+      <!-- Battle Scene -->
+      <div id="scene">
+        <div id="hero"></div>
+        <div id="enemy"></div>
+      </div>
+
+      <!-- Battle HUD -->
+      <div class="battle-hud">
+        <div class="hud-side hero">
+          <div class="name">
+            <span>🧙 YOU</span>
+            <span id="hHPt">0/0</span>
+          </div>
+          <div class="bar hp"><div id="hHPb"></div></div>
+          <div class="bar qi"><div id="hQib"></div></div>
+          <div class="buffs" id="hBuffs"></div>
+        </div>
+        <div class="hud-side enemy">
+          <div class="name">
+            <span id="mName">—</span>
+            <span id="mHPt">0/0</span>
+          </div>
+          <div class="bar mhp"><div id="mHPb"></div></div>
+          <div class="bar xp" style="height:6px;margin-top:4px;"><div id="mXPb"></div></div>
+          <div class="buffs" id="mBuffs"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions">
+        <button class="btn green icon" id="a-atk" onclick="act('atk')" disabled>
+          ⚔️ Attack
+        </button>
+        <button class="btn orange icon" id="a-pow" onclick="act('pow')" disabled>
+          💥 Power
+        </button>
+        <button class="btn red icon" id="a-fire" onclick="act('fire')" disabled>
+          🔥 Fireball
+        </button>
+        <button class="btn purple icon" id="a-poison" onclick="act('poison')" disabled>
+          ☠️ Poison
+        </button>
+        <button class="btn green icon" id="a-heal" onclick="act('heal')" disabled>
+          💚 Heal
+        </button>
+        <button class="btn blue icon" id="a-sh" onclick="act('sh')" disabled>
+          🛡️ Shield
+        </button>
+        <button class="btn pink icon" id="a-pot" onclick="act('pot')" disabled>
+          🧪 Potion
+        </button>
+        <button class="btn cyan icon" id="a-flee" onclick="act('flee')" disabled>
+          🏃 Flee
+        </button>
+      </div>
+      
+      <!-- Auto Toggle -->
+      <div style="display:flex;gap:8px;margin-top:10px;z-index:2;">
+        <button class="btn cyan" id="a-auto" onclick="toggleAuto()" disabled style="flex:1;">
+          ▶ AUTO BATTLE
+        </button>
+        <button class="btn purple" id="a-rush" onclick="toggleRush()" disabled style="flex:1;">
+          ⚡ RUSH MODE
+        </button>
+      </div>
+      
+      <!-- Victory/Defeat Overlay -->
+      <div class="overlay" id="ov">
+        <h1 id="ovT">VICTORY</h1>
+        <div id="ovS" class="dim" style="font-size:1rem;line-height:1.8;text-align:center;"></div>
+        <div style="display:flex;gap:12px;margin-top:10px;">
+          <button class="btn big green" id="ovBtn" onclick="closeOv()">⚔️ Continue</button>
+          <button class="btn big blue" id="ovLoot" onclick="collectLoot()" style="display:none;">🎁 Collect All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUILD Screen -->
+  <div class="screen" id="s-guild">
+    <!-- Guild Crest -->
+    <div class="card" style="width:280px;">
+      <h2>🏅 GUILD CREST</h2>
+      <div class="center dim" style="margin-bottom:12px;">Click to gather Gold + Qi</div>
+      <div class="crest" id="crest" onclick="clickCrest(event)">
+        <svg viewBox="0 0 200 170" width="180" height="160">
+          <defs>
+            <linearGradient id="crestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#10b981"/>
+              <stop offset="100%" style="stop-color:#34d399"/>
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <polygon points="100,10 150,85 100,160 50,85" fill="none" stroke="url(#crestGrad)" stroke-width="4" filter="url(#glow)"/>
+          <polygon points="100,40 132,85 100,130 68,85" fill="#1a3a2a" stroke="url(#crestGrad)" stroke-width="2"/>
+          <circle cx="100" cy="85" r="12" fill="#06b6d4" filter="url(#glow)"/>
+          <circle cx="100" cy="85" r="6" fill="#a7f3d0"/>
+        </svg>
+      </div>
+      <div class="qiorb">
+        <div class="orb"></div>
+        <span class="dim" style="font-size:0.75rem;">Qi Orb</span>
+      </div>
+      <div class="center" style="margin-top:12px;">
+        <span class="badge" id="gRelic">🏺 Relics: 0</span>
+      </div>
+      <div class="center dim" style="margin-top:8px;font-size:0.7rem;" id="crestBonus"></div>
+    </div>
+
+    <!-- Party Companions -->
+    <div class="card" style="width:340px;max-height:580px;overflow-y:auto;">
+      <h2>👥 PARTY COMPANIONS</h2>
+      <div class="center dim" style="color:var(--cyan);margin-bottom:12px;" id="gParty"></div>
+      <div id="comps"></div>
+    </div>
+
+    <!-- Spirit Farm -->
+    <div class="card" style="width:260px;">
+      <h2>🌿 SPIRIT FARM</h2>
+      <div class="center dim" style="font-size:0.72rem;">Herbs auto-harvest → Potions & Qi</div>
+      <div class="center" style="margin:12px 0;display:flex;gap:16px;justify-content:center;">
+        <div style="text-align:center;">
+          <div style="font-size:1.5rem;">🌿</div>
+          <div class="dim" id="gHerb" style="font-size:0.7rem;">0</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.5rem;">🧪</div>
+          <div class="dim" id="gPot" style="font-size:0.7rem;">0</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.5rem;">⚡</div>
+          <div class="dim" id="gFarmQi" style="font-size:0.7rem;">+0</div>
+        </div>
+      </div>
+      <div class="farmrow" id="plots"></div>
+      <button class="btn green" style="width:100%;margin-top:12px;" onclick="plantAll()">
+        🌱 Plant All (25g each)
+      </button>
+      <button class="btn orange" style="width:100%;margin-top:8px;" onclick="brew()">
+        🧪 Brew Potion (3 herbs)
+      </button>
+      <button class="btn cyan" style="width:100%;margin-top:8px;" onclick="harvestAll()">
+        ✋ Harvest All
+      </button>
+    </div>
+  </div>
+
+  <!-- GROWTH Screen -->
+  <div class="screen" id="s-growth">
+    <!-- Character Stats -->
+    <div class="card" style="width:280px;max-height:600px;overflow-y:auto;">
+      <h2>👤 CHARACTER</h2>
+      <div class="center" style="color:var(--yellow);font-weight:700;margin-bottom:12px;" id="grPts"></div>
+      
+      <div style="margin-bottom:16px;" id="statrows"></div>
+      
+      <h3>⚔️ CLASS</h3>
+      <div class="dim" id="grCls" style="font-size:0.75rem;margin-bottom:8px;"></div>
+      <div class="farmrow" style="margin-bottom:12px;">
+        <button class="btn red" id="cW" onclick="pickClass('Warrior')" disabled>Warrior</button>
+        <button class="btn purple" id="cM" onclick="pickClass('Mage')" disabled>Mage</button>
+        <button class="btn blue" id="cR" onclick="pickClass('Ranger')" disabled>Ranger</button>
+      </div>
+      
+      <h3>📜 TITLES</h3>
+      <div class="titles" id="grTitles"></div>
+      
+      <h3>⚙️ EQUIPMENT</h3>
+      <div class="dim" id="grEquip" style="font-size:0.72rem;line-height:1.8;"></div>
+    </div>
+    
+    <!-- Skill Tree -->
+    <div class="card" style="flex:1;max-width:620px;max-height:600px;overflow-y:auto;">
+      <h2>🌳 SKILL TREE — <span style="color:var(--cyan);" id="grSP">0</span> pts</h2>
+      <div class="skilltree" id="tree"></div>
+    </div>
+  </div>
+
+  <!-- INVENTORY Screen -->
+  <div class="screen" id="s-inventory">
+    <div class="card" style="width:100%;max-width:800px;">
+      <h2>🎒 INVENTORY</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;" id="inventoryGrid"></div>
+      <div class="center dim" id="invEmpty" style="margin-top:40px;padding:40px;">
+        Inventory is empty. Defeat enemies to collect items!
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS Screen -->
+  <div class="screen" id="s-settings">
+    <div class="card" style="width:320px;">
+      <h2>⚙️ SETTINGS</h2>
+      
+      <h3>🎮 GAMEPLAY</h3>
+      <div class="statrow">
+        <span>Auto-Battle Delay</span>
+        <select id="autoDelay" onchange="updateSettings()" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:6px;border-radius:6px;">
+          <option value="300">Fast (300ms)</option>
+          <option value="500" selected>Normal (500ms)</option>
+          <option value="800">Slow (800ms)</option>
+        </select>
+      </div>
+      
+      <div class="statrow">
+        <span>Rush Mode Speed</span>
+        <select id="rushSpeed" onchange="updateSettings()" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:6px;border-radius:6px;">
+          <option value="50">Ultra (50ms)</option>
+          <option value="100" selected>Fast (100ms)</option>
+          <option value="200">Normal (200ms)</option>
+        </select>
+      </div>
+      
+      <h3>🔊 AUDIO</h3>
+      <div class="statrow">
+        <span>Sound Effects</span>
+        <label class="btn" style="width:60px;padding:4px;">
+          <input type="checkbox" id="sfxEnabled" checked onchange="updateSettings()" style="accent-color:var(--green);">
+        </label>
+      </div>
+      
+      <h3>💾 SAVE DATA</h3>
+      <button class="btn green" style="width:100%;margin-bottom:8px;" onclick="saveGame(true)">
+        💾 Save Now
+      </button>
+      <button class="btn orange" style="width:100%;margin-bottom:8px;" onclick="exportSave()">
+        📤 Export Save
+      </button>
+      <button class="btn blue" style="width:100%;margin-bottom:8px;" onclick="importSave()">
+        📥 Import Save
+      </button>
+      <button class="btn red" style="width:100%;" onclick="hardReset()">
+        ☢️ HARD RESET
+      </button>
+      
+      <h3>ℹ️ GAME INFO</h3>
+      <div class="dim" style="font-size:0.7rem;line-height:1.8;">
+        System Hunter: Ascension v2.0<br>
+        Built with ❤️ for idle RPG fans<br>
+        <br>
+        <b>Tips:</b><br>
+        • Click the Guild Crest for bonus resources<br>
+        • Auto-battle continues after victories<br>
+        • Rush mode speeds up combat significantly<br>
+        • Harvest herbs regularly for potions<br>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for save import -->
+  <input type="file" id="saveFile" accept=".json" style="display:none;" onchange="handleFileImport(event)">
+
+  <script src="game.js"></script>
+</body>
+</html>
