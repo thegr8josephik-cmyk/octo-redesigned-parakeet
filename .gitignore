@@ -64,3 +64,4 @@ venv/
 *.7z
 *.rar
 ```.next/
+.next/
